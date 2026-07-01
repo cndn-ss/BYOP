@@ -1,0 +1,17 @@
+rock_code,description,GR_api,RHOB_gcc,NPHI,competency_manual
+mt,"MCT metamorphics: phyllite 40%, schist 30%, quartzite 20%, gneiss 10%",121,2.71,0.14,0.38
+pi,"Himalayan granites, granodiorites — crystalline intrusive bodies",150,2.65,0.05,0.74
+pb,"Gabbro, dolerite, amphibolite — dense mafic plutonics",50,2.95,0.05,0.71
+ss,"Sandstone, shale — sedimentary siliciclastic rocks",80,2.55,0.15,0.45
+sc,"Limestone, dolomite — carbonate sedimentary rocks",25,2.73,0.1,0.58
+sm,Mixed sedimentary — variable composition,70,2.58,0.14,0.42
+su,"River alluvium, slope debris, colluvium — loose material",95,1.9,0.35,0.1
+va,"Rhyolite, obsidian — silicic volcanic rocks",155,2.5,0.08,0.62
+vb,"Basalt — mafic volcanic rocks, dense",45,2.9,0.08,0.68
+vi,Andesite — intermediate volcanic rocks,90,2.7,0.1,0.6
+pa,"Volcanic tuff, ash layers — weakest volcanic type",110,1.8,0.3,0.2
+ev,"Gypsum, halite — evaporite minerals",30,2.3,0.15,0.35
+wb,River/lake water — not rock,0,1.0,1.0,0.05
+nd,No geological data available,100,2.65,0.12,0.4
+ig,Ice and glacier ice — seasonal,0,0.92,1.0,0.05
+ds,Aeolian sand dunes — unconsolidated,60,1.65,0.4,0.08
