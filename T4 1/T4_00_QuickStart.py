@@ -26,7 +26,7 @@ import os
 import fiona
 
 # ── CHANGE THIS to your actual project folder path ──────────────────────
-BASE_DIR = r"D:\Games_krish\T4 1"
+BASE_DIR = r"T4 1"
 # ────────────────────────────────────────────────────────────────────────
 
 GDB_PATH = os.path.join(BASE_DIR, "data", "raw", "LiMW_GIS 2015.gdb")

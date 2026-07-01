@@ -10,7 +10,7 @@ import matplotlib.patches as mpatches
 from shapely.geometry import box
 
 # ── CHANGE THIS ───────────────────────────────────────────────────────────
-BASE_DIR = r"D:\Games_krish\T4 1"
+BASE_DIR = r"T4 1"
 # ─────────────────────────────────────────────────────────────────────────
 
 GDB_PATH_CANDIDATES = [

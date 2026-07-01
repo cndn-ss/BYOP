@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from math import radians, cos, sin, asin, sqrt
 
 # ── CHANGE THIS ─────────────────────────────────────────────────────────
-BASE_DIR = r"D:\Games_krish\T4 1"
+BASE_DIR = r"T4 1"
 # ────────────────────────────────────────────────────────────────────────
 
 CSV_PATH      = os.path.join(BASE_DIR, "data", "raw",
