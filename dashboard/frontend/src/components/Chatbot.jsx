@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { API } from '../api'
 
 const INITIAL = [{
   role: 'bot',
@@ -22,7 +23,7 @@ export default function Chatbot({ onClose }) {
     setMessages(prev => [...prev, { role: 'user', text: msg }])
     setLoading(true)
     try {
-      const res  = await fetch('/api/chat', {
+      const res  = await fetch(API.chat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg }),

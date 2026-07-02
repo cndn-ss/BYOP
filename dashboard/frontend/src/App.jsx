@@ -58,7 +58,7 @@ export default function App() {
         style={{
           top: NAV_H + 10,
           left: 12,
-          width: 420,   /* wide enough for all feature label text */
+          width: 480,   /* wider — feature label text fully readable */
         }}
       >
         <ModelPanel />

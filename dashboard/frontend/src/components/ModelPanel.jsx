@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { API } from '../api'
 
 export default function ModelPanel() {
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
-    fetch('/api/stats').then(r => r.json()).then(setStats).catch(console.error)
+    fetch(API.stats).then(r => r.json()).then(setStats).catch(console.error)
   }, [])
 
   const m = stats?.model_metrics
@@ -18,7 +19,7 @@ export default function ModelPanel() {
           Feature Importance
         </p>
         <img
-          src="/api/importance"
+          src={API.importance}
           alt="Feature Importance"
           className="w-full rounded-lg"
           style={{ display: 'block' }}

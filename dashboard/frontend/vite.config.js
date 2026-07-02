@@ -6,8 +6,13 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    // Dev proxy — forwards /api/* to the local FastAPI server
+    // In production (Vercel), set VITE_API_URL env var instead
     proxy: {
-      '/api': 'http://localhost:8000',
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

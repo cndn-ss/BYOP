@@ -1,33 +1,13 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.heat'
+import { API } from '../api'
 
-// ── Risk colours ────────────────────────────────────────────────
 const riskColor = (level) => {
   if (level === 'High')   return '#ef4444'
   if (level === 'Medium') return '#f59e0b'
   return '#22c55e'
-}
-
-// ── Score → RGBA for heatmap ────────────────────────────────────
-// green (0) → yellow (0.5) → red (1)
-function scoreToRgba(score, alpha = 0.55) {
-  const s = Math.max(0, Math.min(1, score))
-  let r, g, b
-  if (s < 0.5) {
-    // green → yellow
-    const t = s / 0.5
-    r = Math.round(34  + t * (251 - 34))
-    g = Math.round(197 + t * (191 - 197))
-    b = Math.round(94  + t * (36  - 94))
-  } else {
-    // yellow → red
-    const t = (s - 0.5) / 0.5
-    r = Math.round(251 + t * (239 - 251))
-    g = Math.round(191 + t * (68  - 191))
-    b = Math.round(36  + t * (68  - 36))
-  }
-  return `rgba(${r},${g},${b},${alpha})`
 }
 
 export default function MapView({ navHeight = 48 }) {
@@ -57,25 +37,41 @@ export default function MapView({ navHeight = 48 }) {
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       { attribution: '© OpenStreetMap', maxZoom: 19 }
     )
-    terrain.addTo(map)
+    street.addTo(map)
 
-    /* ── Overlay layers ───────────────────────────────────── */
-    const riskLayer   = L.layerGroup().addTo(map)
-    const labelLayer  = L.layerGroup().addTo(map)
-    const heatmapLayer = L.layerGroup()   // off by default
+    /* ── Overlay layer groups ─────────────────────────────── */
+    const riskLayer  = L.layerGroup().addTo(map)
+    const labelLayer = L.layerGroup().addTo(map)
+
+    // Real heatmap using leaflet.heat — proper KDE blur
+    // [lat, lng, intensity] — intensity = risk_score (0–1)
+    const heatLayer = L.heatLayer([], {
+      radius:  28,      // blur radius in px — controls spread
+      blur:    22,      // blur amount — higher = smoother
+      maxZoom: 12,      // stops intensifying beyond this zoom
+      max:     1.0,     // max intensity value
+      // green → yellow → red gradient matching risk colours
+      gradient: {
+        0.0:  '#22c55e',   // low
+        0.35: '#22c55e',
+        0.5:  '#f59e0b',   // medium
+        0.65: '#f59e0b',
+        0.8:  '#ef4444',   // high
+        1.0:  '#ef4444',
+      },
+    }).addTo(map)
 
     /* ── Layer control ────────────────────────────────────── */
     const layerCtrl = L.control.layers(
       { Terrain: terrain, Satellite: satellite, Street: street },
       {
-        'Risk Points':         riskLayer,
+        'Risk Points':          riskLayer,
         'Confirmed Landslides': labelLayer,
-        'Risk Heatmap':        heatmapLayer,
+        'Risk Heatmap':         heatLayer,
       },
       { position: 'topright', collapsed: true }
     ).addTo(map)
 
-    // push layer control below navbar
     layerCtrl.getContainer().style.marginTop = (navHeight + 8) + 'px'
 
     /* ── Legend + zoom row — bottom left ──────────────────── */
@@ -101,11 +97,10 @@ export default function MapView({ navHeight = 48 }) {
       `
 
       const zoomWrap = L.DomUtil.create('div', 'ts-zoom-wrap', wrap)
-
-      const zoomIn  = L.DomUtil.create('button', 'ts-zoom-btn', zoomWrap)
-      zoomIn.innerHTML  = '+'
-      zoomIn.title      = 'Zoom in'
-      L.DomEvent.on(zoomIn,  'click', e => { L.DomEvent.stop(e); map.zoomIn() })
+      const zoomIn   = L.DomUtil.create('button', 'ts-zoom-btn', zoomWrap)
+      zoomIn.innerHTML = '+'
+      zoomIn.title     = 'Zoom in'
+      L.DomEvent.on(zoomIn, 'click', e => { L.DomEvent.stop(e); map.zoomIn() })
 
       const zoomOut = L.DomUtil.create('button', 'ts-zoom-btn', zoomWrap)
       zoomOut.innerHTML = '−'
@@ -118,7 +113,7 @@ export default function MapView({ navHeight = 48 }) {
     }
     bottomCtrl.addTo(map)
 
-    /* ── Build popup HTML ─────────────────────────────────── */
+    /* ── Popup builder ────────────────────────────────────── */
     const buildPopup = (p, col) => `
       <div style="font-family:system-ui;font-size:12px;min-width:190px">
         <div style="background:${col};color:white;font-weight:700;padding:5px 10px;
@@ -127,13 +122,13 @@ export default function MapView({ navHeight = 48 }) {
         </div>
         <table style="width:100%;border-collapse:collapse">
           ${[
-            ['Slope',             `${p.slope}°`],
-            ['NDVI',               p.NDVI],
-            ['Rainfall',          `${p.rainfall} mm/yr`],
-            ['Competency',         p.competency_index],
-            ['Elevation',         `${p.elevation} m`],
-            ['Factor of Safety',   p.FS],
-          ].map(([k,v]) => `
+            ['Slope',           `${p.slope}°`],
+            ['NDVI',             p.NDVI],
+            ['Rainfall',        `${p.rainfall} mm/yr`],
+            ['Competency',       p.competency_index],
+            ['Elevation',       `${p.elevation} m`],
+            ['Factor of Safety', p.FS],
+          ].map(([k, v]) => `
             <tr style="border-bottom:1px solid #f3f4f6">
               <td style="padding:3px 10px 3px 0;color:#6b7280;font-size:11px">${k}</td>
               <td style="padding:3px 0;font-weight:600;font-size:11px">${v}</td>
@@ -141,49 +136,43 @@ export default function MapView({ navHeight = 48 }) {
         </table>
       </div>`
 
-    /* ── Fetch & render risk points ───────────────────────── */
-    fetch('/api/points')
+    /* ── Fetch risk points → circles + heatmap ────────────── */
+    fetch(API.points)
       .then(r => r.json())
       .then(data => {
-        const features = data.features || []
+        const features  = data.features || []
+        const heatPoints = []
+
         features.forEach(f => {
           const p   = f.properties
           const lat = f.geometry.coordinates[1]
           const lon = f.geometry.coordinates[0]
           const col = riskColor(p.risk_level)
 
-          // ── Circle marker — popup opens ABOVE the point ──
+          // circle marker for clicking
           L.circleMarker([lat, lon], {
             radius: 5, fillColor: col,
             color: 'white', weight: 0.8, fillOpacity: 0.88,
           })
-            .bindPopup(buildPopup(p, col), {
-              offset: L.point(0, -8),   // shift popup up above the dot
-              autoPan: true,
-            })
+            .bindPopup(buildPopup(p, col), { offset: L.point(0, -8), autoPan: true })
             .addTo(riskLayer)
 
-          // ── Heatmap tile: filled circle, no border, translucent ──
-          L.circleMarker([lat, lon], {
-            radius:      18,
-            fillColor:   scoreToRgba(p.risk_score, 0.55),
-            color:       'transparent',
-            weight:      0,
-            fillOpacity: 1,
-          })
-            .bindPopup(buildPopup(p, col), { offset: L.point(0, -18) })
-            .addTo(heatmapLayer)
+          // feed into heatmap — [lat, lng, intensity]
+          heatPoints.push([lat, lon, p.risk_score])
         })
+
+        // set all points at once for best performance
+        heatLayer.setLatLngs(heatPoints)
       })
       .catch(console.error)
 
-    /* ── Fetch & render landslide labels ──────────────────── */
-    fetch('/api/labels')
+    /* ── Fetch landslide labels ───────────────────────────── */
+    fetch(API.labels)
       .then(r => r.json())
       .then(data => {
         const icon = L.divIcon({
           html: '<span style="font-size:13px;color:#1e293b;line-height:1">▲</span>',
-          className: '', iconSize: [13,13], iconAnchor: [6,6],
+          className: '', iconSize: [13, 13], iconAnchor: [6, 6],
         })
         ;(data.features || []).forEach(f => {
           const [lon, lat] = f.geometry.coordinates

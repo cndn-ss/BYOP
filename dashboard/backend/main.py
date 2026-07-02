@@ -32,7 +32,7 @@ labels_df    = pd.read_csv(DATA / "landslide_labels.csv")
 master_df    = pd.read_csv(DATA / "master_features.csv")   # full features for /predict
 
 # ── app ────────────────────────────────────────────────────────
-app = FastAPI(title="TerraSense API", version="1.0.0")
+app = FastAPI(title="GeoSentinel+ API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

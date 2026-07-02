@@ -1,0 +1,582 @@
+================================================================
+GeoSentinel+ — Complete Person-Wise Timeline
+BYOP 2026 | Hamrock Society | IIT Roorkee
+Start: Today | Deadline: July 2, 2026
+================================================================
+
+TEAM
+----
+T1 : Teammate 1
+T2 : Teammate 2
+T3 : Teammate 3
+T4 : Teammate 4
+
+================================================================
+BEFORE YOU START — DO THIS TODAY (Everyone, 1-2 hours)
+================================================================
+
+Everyone does this individually on their own laptop:
+
+1. Create a GitHub account if you do not have one
+   Link: https://github.com
+
+2. One person creates the project repo named geosentinel-plus
+   and adds everyone else as collaborators
+
+3. Create this folder structure inside the repo:
+   geosentinel-plus/
+   ├── data/
+   │   ├── raw/
+   │   └── processed/
+   ├── notebooks/
+   ├── outputs/
+   └── README.md
+
+4. Everyone installs Python libraries by running:
+   pip install pandas numpy scikit-learn xgboost matplotlib
+   seaborn geopandas rasterio shapely welly lasio joblib
+
+5. T1 signs up for Google Earth Engine
+   Link: https://earthengine.google.com/signup/
+   Use your college email. Approval is usually same day.
+
+6. T3 and T4 download the FORCE 2020 dataset
+   Link: https://www.kaggle.com/datasets/ala2705/force-2020-well-log-facies
+   Keep the downloaded files in the data/raw/ folder
+
+7. T4 accesses the GSI Bhukosh portal
+   Link: https://bhukosh.gsi.gov.in
+   Open Map Viewer, find Uttarakhand geology layer,
+   download the shapefile. Keep in data/raw/ folder.
+   Also download QGIS to open and view the shapefile:
+   Link: https://qgis.org/en/site/forusers/download.html
+
+================================================================
+DAY 1
+================================================================
+
+T1 — Learn GEE Basics
+  Go to the GEE code editor:
+  Link: https://code.earthengine.google.com
+  Read the getting started guide:
+  Link: https://developers.google.com/earth-engine/guides/getstarted
+  Run two small practice scripts to confirm your account works:
+    - Load and display a SRTM elevation image on the map
+    - Load and display a Sentinel-2 image on the map
+  Goal by end of day: GEE is working and you can load
+  and see satellite data on the map.
+
+T2 — Project Setup and Understanding
+  Read through this entire plan document carefully so
+  you understand the full picture.
+  Set up the GitHub repo and folder structure for everyone.
+  Write a basic README.md explaining what the project is.
+  Goal: Repo ready for everyone to push their work to.
+
+T3 — FORCE 2020 Data Exploration
+  Open the downloaded FORCE 2020 CSV in a Jupyter notebook.
+  Print all column names and understand what is available.
+  Check the FORCE_2020_lithofacies column — these are the
+  rock type labels (ground truth for the dataset).
+  Check how many rows exist and how many unique wells.
+  Plot simple histograms of the GR, RHOB and NPHI columns.
+  Goal: Fully understand the structure of the dataset.
+
+T4 — Geology Map Exploration
+  Open the downloaded Uttarakhand geology shapefile in QGIS.
+  Visually check what rock type polygons are present.
+  Make a list of all rock type names shown in the map.
+  This list tells you which rocks you need to find
+  GR, RHOB and NPHI proxy values for.
+  Start searching Google Scholar for papers on petrophysical
+  properties of phyllite, schist and quartzite.
+  Search terms to use:
+    "gamma ray log phyllite metamorphic"
+    "density RHOB schist petrophysical"
+    "neutron porosity quartzite well log"
+  Goal: Shapefile opened, rock type list made, literature
+  search started.
+
+================================================================
+DAY 2
+================================================================
+
+T1 — GEE Script Part 1 (Terrain Features)
+  Write the GEE script to load SRTM DEM and compute:
+    Elevation
+    Slope   (use ee.Terrain.slope)
+    Aspect  (use ee.Terrain.aspect)
+    Curvature (use Laplacian kernel convolution)
+  Define the study area bounding box in your script:
+    var studyArea = ee.Geometry.Rectangle([79.3,30.3,79.7,30.7])
+  Display the slope layer on the GEE map to visually
+  confirm it looks correct over the Joshimath region.
+  Goal: Slope, aspect and curvature layers working in GEE.
+
+T2 — Landslide Inventory Download
+  Download NASA Global Landslide Catalog from Kaggle:
+  Link: https://www.kaggle.com/datasets/nasa/landslide-events
+  Filter rows to keep only India events.
+  Filter further to keep only Uttarakhand coordinates:
+    Latitude between 29.5 and 31.5
+    Longitude between 78.0 and 81.0
+  Save filtered points as landslide_points.csv
+  with columns: latitude, longitude, label = 1
+  Goal: Confirmed landslide points with label 1 ready.
+
+T3 — Create Competency Labels and Train Model
+  Using the FORCE 2020 data, create a competency label
+  column using this logic:
+    Low competency (near 0):
+      GR greater than 75 AND NPHI is high
+      (shale dominated, weak rock)
+    High competency (near 1):
+      GR less than 40 AND RHOB is high AND NPHI is low
+      (quartz dominated, strong rock)
+  Train a Random Forest Regressor on this:
+    Features: GR, RHOB, NPHI
+    Target: competency_label (0 to 1)
+    from sklearn.ensemble import RandomForestRegressor
+    model = RandomForestRegressor(n_estimators=200)
+    model.fit(X_train, y_train)
+  Evaluate with R-squared score.
+  Save the trained model:
+    import joblib
+    joblib.dump(model, 'competency_model.pkl')
+  Goal: competency_model.pkl saved and working.
+
+T4 — Proxy Value Table + Apply to Himalayan Rocks
+  Complete the proxy value table from literature:
+
+  Rock Type    | GR (API) | RHOB (g/cc) | NPHI (fraction)
+  -------------|----------|-------------|----------------
+  Phyllite     |          |             |
+  Schist       |          |             |
+  Quartzite    |          |             |
+  Gneiss       |          |             |
+
+  Load competency_model.pkl that T3 made.
+  Feed each rock type's proxy values into the model
+  and record its Competency Score output.
+  Result should be a table like:
+    Phyllite  -> competency score (likely low, weak rock)
+    Quartzite -> competency score (likely high, strong rock)
+  Goal: Competency score assigned to every Himalayan
+  rock type present in the study area.
+
+================================================================
+DAY 3
+================================================================
+
+T1 — GEE Script Part 2 (NDVI and Rainfall)
+  Add NDVI and rainfall layers to your GEE script:
+    NDVI from Sentinel-2 bands B8 and B4:
+      var ndvi = s2.normalizedDifference(['B8','B4'])
+    Mean annual rainfall from CHIRPS 2020 to 2023
+  Apply resolution matching — reproject NDVI from its
+  native 10m resolution to 30m to match SRTM:
+    var ndvi30 = ndvi.resample('bilinear')
+      .reproject({crs: dem.projection(), scale: 30})
+  Stack all layers into one image.
+  Sample 1000 random points across the study area and
+  extract all feature values at those points.
+  Export the sample table as CSV to your Google Drive:
+    Export.table.toDrive({...})
+  Goal: surface_features.csv exported and downloading.
+
+T2 — Factor of Safety Setup
+  Once T1 shares the master feature table (Day 5),
+  you will calculate the Factor of Safety column.
+  For now, set up the notebook and write the formula
+  as a Python function ready to apply later:
+
+  import numpy as np
+
+  def factor_of_safety(c, gamma, gamma_w, m, z, beta_deg, phi_deg):
+      beta = np.radians(beta_deg)
+      phi  = np.radians(phi_deg)
+      num  = c + (gamma - gamma_w * m) * z * (np.cos(beta)**2) * np.tan(phi)
+      den  = gamma * z * np.sin(beta) * np.cos(beta)
+      return num / den
+
+  Where:
+    c       = competency_index * 20
+    gamma   = 20
+    gamma_w = 9.81
+    m       = rainfall scaled to 0 to 1 range
+    z       = 2.0
+    beta    = slope column (degrees)
+    phi     = 30 + competency_index * 10
+
+  Also start setting up Flask project locally:
+    pip install flask flask-cors
+  Create a basic skeleton API with one test route.
+  Goal: FS function written and tested, Flask skeleton ready.
+
+T3 — Validate Model + Document the Logic
+  Test the competency model manually:
+    High GR + high NPHI input should return near 0
+    Low GR + high RHOB input should return near 1
+  Confirm the model makes geological sense.
+  Write a short explanation of the label logic in the
+  notebook as a markdown cell — this goes into the proposal.
+  Share competency_model.pkl with T4 via GitHub.
+  Goal: Model validated and reasoning written down.
+
+T4 — Build the Competency Modifier Map Raster
+  Load the Uttarakhand shapefile with geopandas.
+  Add a new column competency_score to each polygon
+  based on the rock type lookup table from Day 2.
+  Rasterize the shapefile at 30m resolution:
+    from rasterio.features import rasterize
+  Clip the output raster to the study area bounding box.
+  Save as competency_map.tif in the outputs/ folder.
+  Goal: competency_map.tif covering the full study area.
+
+================================================================
+DAY 4
+================================================================
+
+T1 — Download GEE Export and Set Up Fusion Notebook
+  Download the surface_features.csv from Google Drive.
+  Save to data/processed/ folder.
+  Open in pandas and check all columns are correct.
+  Check for any null values or obviously wrong numbers.
+  Set up the feature_fusion.ipynb notebook with blank
+  cells ready to load each data source one by one.
+  Goal: Surface features verified, fusion notebook ready.
+
+T2 — ISRO Bhuvan Landslide Inventory
+  Go to: https://bhuvan.nrsc.gov.in
+  Look for: Thematic Services > Natural Hazards > Landslide
+  Download the Uttarakhand landslide inventory layer.
+  Extract lat/lon of confirmed event points.
+  Add these to the NASA landslide points from Day 2
+  to get more ground truth label 1 examples.
+  The more real confirmed landslide points the better.
+  Save combined points as landslide_label1.csv
+  Goal: Label 1 points from both NASA and ISRO combined.
+
+T3 — Generate Stable Points (Label 0)
+  We need non-landslide stable points as label 0.
+  Strategy — generate points only from genuinely safe areas:
+    Filter to points where slope is less than 10 degrees
+    AND NDVI is greater than 0.4
+    AND rainfall is below the 40th percentile
+  Randomly sample from these filtered points.
+  Generate enough to balance with label 1 count (50/50).
+  Add label = 0 to these points.
+  Combine with label 1 points from T2.
+  Save final combined dataset as landslide_labels.csv
+  Goal: Balanced labelled dataset of 600 to 1000 points.
+
+T4 — Check and Share Competency Map
+  Open competency_map.tif in QGIS and visually verify:
+    Does it cover the full study area?
+    Do lower competency values fall on weaker rock zones?
+    Are there any blank or missing patches?
+  Fix any issues found.
+  Push the file to GitHub so T1 can use it in fusion.
+  Goal: Competency map verified and shared on GitHub.
+
+================================================================
+DAY 5
+================================================================
+
+T1 — Feature Fusion
+  Load all data into the fusion notebook:
+    surface_features.csv
+    competency_map.tif
+    landslide_labels.csv
+  Sample competency raster values at each labelled point
+  using rasterio to read pixel values at lat/lon.
+  Merge everything into one master dataframe.
+  Final columns:
+    lat, lon, elevation, slope, aspect, curvature,
+    NDVI, rainfall, competency_index, label
+  Check for nulls and fix them.
+  Save as master_features.csv in data/processed/
+  Share on GitHub immediately so T2 can add the FS column.
+  Goal: master_features.csv complete, clean and shared.
+
+T2 — Factor of Safety Calculation
+  Load master_features.csv from T1.
+  Apply the FS formula function (written on Day 3)
+  row-wise across the entire dataframe:
+    df['FS'] = df.apply(lambda row: factor_of_safety(
+      c    = row['competency_index'] * 20,
+      gamma = 20, gamma_w = 9.81,
+      m    = row['rainfall_normalized'],
+      z    = 2.0,
+      beta_deg = row['slope'],
+      phi_deg  = 30 + row['competency_index'] * 10
+    ), axis=1)
+  Check that steep high-rainfall low-competency rows
+  give FS less than 1 (these are the dangerous zones).
+  Save the updated file with FS column added.
+  Goal: FS column added and verified in master_features.csv
+
+T3 and T4 — Start Proposal Writing
+  T3 writes these sections:
+    Problem Statement (copy from end of this document)
+    Data Sources (list all datasets with links)
+    Methodology (describe the 5 stages simply)
+
+  T4 writes these sections:
+    Project Title and Team details
+    Study Area description
+    Novelty Statement
+    Expected Outputs list
+
+  Goal: First draft of all proposal sections done.
+
+================================================================
+DAY 6
+================================================================
+
+T1 — Train the Final ML Classifier
+  Load master_features.csv with the FS column.
+  Features and target:
+    features = ['slope','aspect','curvature','NDVI',
+                'rainfall','competency_index','FS']
+    target   = 'label'
+  Train/test split 80/20 stratified:
+    X_train, X_test, y_train, y_test = train_test_split(
+      X, y, test_size=0.2, stratify=y, random_state=42)
+  Train Random Forest:
+    rf = RandomForestClassifier(n_estimators=300,
+                                max_depth=10,
+                                random_state=42)
+    rf.fit(X_train, y_train)
+  Train XGBoost:
+    xgb = XGBClassifier(n_estimators=300,
+                        learning_rate=0.05,
+                        max_depth=6)
+    xgb.fit(X_train, y_train)
+  Evaluate both on accuracy, F1 score and ROC-AUC.
+  Pick whichever performs better.
+  Save: joblib.dump(best_model, 'final_model.pkl')
+  Goal: final_model.pkl saved, evaluation metrics noted.
+
+T2 — Baseline Model and Spatial Cross-Validation
+  Train a baseline model using ONLY surface features:
+    features_baseline = ['slope','aspect','curvature',
+                         'NDVI','rainfall']
+  Use the same setup as T1's model.
+  Compare baseline vs full model metrics:
+    Metric    | Baseline | Full Model
+    ----------|----------|------------
+    Accuracy  |          |
+    F1 Score  |          |
+    ROC-AUC   |          |
+  Also run Spatial Block Cross-Validation:
+    Assign spatial blocks to each point:
+      block = str(int(lat/0.05)) + "_" + str(int(lon/0.05))
+    Use GroupKFold with blocks as groups:
+      from sklearn.model_selection import GroupKFold
+      gkf = GroupKFold(n_splits=5)
+  Report the spatial CV accuracy separately.
+  Goal: Comparison table done, spatial CV done.
+
+T3 — Feature Importance Chart
+  Using T1's trained final model:
+    importances = pd.Series(
+      model.feature_importances_,
+      index=features)
+    importances.sort_values().plot(kind='barh')
+    plt.title('Feature Importance — GeoSentinel+')
+    plt.tight_layout()
+    plt.savefig('outputs/feature_importance.png')
+  This chart shows which factor matters most —
+  slope, rainfall or rock strength.
+  Goal: feature_importance.png saved in outputs/
+
+T4 — Confusion Matrix and ROC Curve
+  Using T1's trained model predictions:
+  Confusion matrix:
+    from sklearn.metrics import confusion_matrix
+    import seaborn as sns
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d')
+    plt.savefig('outputs/confusion_matrix.png')
+  ROC curve:
+    from sklearn.metrics import roc_curve, auc
+    fpr, tpr, _ = roc_curve(y_test, proba)
+    plt.plot(fpr, tpr, label='AUC = %.2f' % auc(fpr,tpr))
+    plt.savefig('outputs/roc_curve.png')
+  Goal: Both charts saved in outputs/
+
+================================================================
+DAY 7
+================================================================
+
+T1 — Generate the Susceptibility Map
+  Apply trained model to every pixel in the study area.
+  For each pixel read its feature values and run:
+    risk_score = model.predict_proba([pixel_features])[0][1]
+  Create a new raster with these scores.
+  Classify into zones:
+    0.00 to 0.35 = Low    (Green)
+    0.35 to 0.65 = Medium (Yellow)
+    0.65 to 1.00 = High   (Red)
+  Save as:
+    outputs/susceptibility_map.tif
+    outputs/susceptibility_map.png
+  Overlay real landslide points on the PNG.
+  Red zones should roughly match where real landslides
+  happened — this is your visual validation.
+  Goal: Final susceptibility map image ready.
+
+T2 — Connect Model to Flask API
+  Load final_model.pkl in the Flask backend.
+  Create an API endpoint /predict that:
+    Accepts latitude and longitude as input
+    Returns: risk score, risk level (low/medium/high),
+    top 3 contributing features
+  Test with a few sample coordinates.
+  Goal: Working API returning real predictions.
+
+T3 — Combine and Review Proposal Draft
+  Combine both proposal drafts (T3 and T4) into one
+  clean document.
+  Add the baseline comparison table numbers from T2.
+  Add the susceptibility map image from T1.
+  Add the feature importance chart from Day 6.
+  Goal: Full first complete proposal draft ready.
+
+T4 — Final Data and Output Checks
+  Check master_features.csv — no nulls anywhere.
+  Check label distribution is roughly 50/50.
+  Check competency_map.tif covers the full study area.
+  Check all output PNGs are saved in outputs/ folder.
+  Goal: Everything verified clean and complete.
+
+================================================================
+DAY 8
+================================================================
+
+T1 — Pipeline Review and GitHub Cleanup
+  Run the complete pipeline once from start to end
+  to confirm everything works without any errors.
+  Make sure all notebooks are clean with outputs saved.
+  Push all final files to GitHub.
+  Folder structure should look like:
+    notebooks/01_well_log_competency_model.ipynb
+    notebooks/02_lithology_mapping.ipynb
+    notebooks/03_GEE_surface_features.js
+    notebooks/04_feature_fusion.ipynb
+    notebooks/05_model_training.ipynb
+    data/processed/master_features.csv
+    outputs/susceptibility_map.png
+    outputs/feature_importance.png
+    outputs/confusion_matrix.png
+    outputs/roc_curve.png
+    competency_model.pkl
+    final_model.pkl
+  Goal: Complete clean repo on GitHub.
+
+T2 — Dashboard Frontend (if time allows)
+  Build a React frontend that displays the map:
+    Use Leaflet.js for interactive map display
+    Link: https://react-leaflet.js.org
+    npm install leaflet react-leaflet
+  Allow clicking a location to query the Flask API.
+  Show risk level and contributing factors on click.
+  If time is tight skip this and just ensure the Flask
+  API is solid — the map image alone is enough.
+  Goal: Basic working dashboard or solid API, one or both.
+
+T3 — Proposal Final Polish
+  Proofread the full proposal document.
+  Make sure every technical claim matches what was
+  actually built and what the numbers actually show.
+  Make sure all 4 domain tags are clearly justified.
+  Make sure the problem statement is copied in exactly.
+  Goal: Final polished proposal document ready.
+
+T4 — Prepare the Submission Form
+  Open the BYOP submission form.
+  Fill in all required fields.
+  Paste the problem statement exactly as written below.
+  Add the GitHub repository link.
+  Select domain tags:
+    Remote Sensing/GIS
+    Well Logs
+    ML/DL
+    Geology
+  Do not submit yet — wait for team review on Day 9.
+  Goal: Form filled and ready, pending final review.
+
+================================================================
+DAY 9 — FINAL REVIEW AND SUBMIT
+================================================================
+
+All four together:
+  Read the full proposal once as a team.
+  Make any last corrections.
+  Confirm the GitHub repo is complete and public.
+  Submit the BYOP form.
+  Done.
+
+================================================================
+PARALLEL WORK SUMMARY — WHO IS NEVER WAITING ON WHOM
+================================================================
+
+Days 1 to 3:
+  T1 is learning GEE and extracting surface features.
+  T3 is training the competency model from well logs.
+  T4 is building the lithology competency map.
+  T2 is setting up the backend and downloading labels.
+  All four are working independently. Nobody is waiting.
+
+Days 4 to 5:
+  T1 does feature fusion once T4 shares the competency map.
+  T2 calculates Factor of Safety once T1 shares master CSV.
+  T3 and T4 are generating labelled data and writing proposal.
+  Small sequential dependency between T4 > T1 > T2 here.
+
+Days 6 to 7:
+  T1 trains the final model.
+  T2 does baseline comparison and spatial CV.
+  T3 does feature importance chart.
+  T4 does confusion matrix and ROC curve.
+  All four are working in parallel again.
+
+Days 7 to 8:
+  T1 generates the susceptibility map.
+  T2 builds the dashboard.
+  T3 and T4 write and polish the proposal.
+  All four are working in parallel.
+
+Day 9:
+  Everyone reviews and submits together.
+
+================================================================
+PROBLEM STATEMENT — COPY THIS INTO SUBMISSION FORM
+================================================================
+
+"Landslide susceptibility in the Garhwal Himalaya is governed
+by both surface morphology and subsurface rock competency.
+Existing models rely solely on remote sensing-derived features
+such as slope, NDVI and curvature, ignoring subsurface
+lithological controls on slope stability. This project
+introduces a Lithological Proxy Transfer Framework that uses
+wireline well log data (GR, RHOB, NPHI) to learn a
+geomechanical rock competency relationship and maps it onto
+Himalayan lithological units via regional geology data from
+GSI Bhukosh. Combined with satellite-derived terrain and
+vegetation indices from Google Earth Engine and a physics-
+informed Factor of Safety feature from the Infinite Slope
+Equation, this multi-source feature set is used to train a
+landslide susceptibility classifier for the MCT zone near
+Helang-Joshimath. The pipeline is designed as a globally
+transferable framework applicable to any mountainous region
+by substituting regional bounding coordinates and lithology
+lookup tables."
+
+================================================================
+
+Powered by curiosity, verified by rigour.
+GeoSentinel+ | BYOP 2026 | Hamrock Society | IIT Roorkee
+
+================================================================

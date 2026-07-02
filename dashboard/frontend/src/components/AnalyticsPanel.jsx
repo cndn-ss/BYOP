@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { API } from '../api'
 
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444']
 
@@ -7,7 +8,7 @@ export default function AnalyticsPanel() {
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
-    fetch('/api/stats').then(r => r.json()).then(setStats).catch(console.error)
+    fetch(API.stats).then(r => r.json()).then(setStats).catch(console.error)
   }, [])
 
   if (!stats) {
