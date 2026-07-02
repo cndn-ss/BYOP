@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* ── Base ────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+
+/* ── Glass panel — white/light theme ─────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.10),
+    0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Chatbot slide-up animation ─────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(32px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.chatbot-slide-up {
+  animation: slideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Thin scrollbar ──────────────────────────────────────────── */
+.glass::-webkit-scrollbar { width: 3px; }
+.glass::-webkit-scrollbar-track { background: transparent; }
+.glass::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+
+/* ── Leaflet overrides ───────────────────────────────────────── */
+.leaflet-top.leaflet-right { top: 56px !important; }
+
+/* custom zoom buttons */
+.ts-zoom-wrap { display: flex; gap: 4px; }
+.ts-zoom-btn {
+  width: 30px; height: 30px;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 8px;
+  font-size: 16px; font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: background 0.15s;
+}
+.ts-zoom-btn:hover { background: rgba(255,255,255,1); color: #111; }
+
+/* layer control */
+.leaflet-control-layers {
+  background: rgba(255,255,255,0.92) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(0,0,0,0.09) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
+  color: #374151 !important;
+}
+.leaflet-control-layers label { color: #374151 !important; font-size: 12px; }
+.leaflet-control-layers-separator { border-color: rgba(0,0,0,0.08) !important; }
+
+/* hide default zoom — we have custom ones */
+.leaflet-control-zoom { display: none !important; }
+
+/* popups */
+.leaflet-popup-content-wrapper {
+  background: rgba(255,255,255,0.97) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14) !important;
+  color: #111827 !important;
+}
+.leaflet-popup-tip { background: rgba(255,255,255,0.97) !important; }
+.leaflet-popup-close-button { color: #9ca3af !important; }
+.leaflet-popup-close-button:hover { color: #111 !important; }
+
+/* ── Chatbot slide-up animation ─────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(40px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.chatbot-slide-up {
+  animation: slideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
